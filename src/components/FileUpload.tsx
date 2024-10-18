@@ -1,24 +1,36 @@
-import React from 'react';
 import { Upload } from 'lucide-react';
+import type { ChangeEvent } from 'react';
+import React from 'react';
+import { parseVCards } from 'vcard4-ts';
+
+import type { ParsedFile } from '../types';
 
 interface FileUploadProps {
-  onUpload: (files: FileList) => void;
+  onFileUpload: (files: ParsedFile[]) => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length === 2) {
-      onUpload(files);
-    } else {
-      alert('Please select exactly two vCard files.');
+const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      const parsedFiles = await Promise.all(
+        files.map(async (file) => {
+          const text = await file.text();
+          const contacts = parseVCards(text).vCards || [];
+          return { name: file.name, contacts };
+        }),
+      );
+      onFileUpload(parsedFiles);
     }
   };
 
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="file-upload" className="block text-lg font-medium text-gray-700">
+        <label
+          htmlFor="file-upload"
+          className="block text-lg font-medium text-gray-700"
+        >
           Upload vCard Files
         </label>
         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
